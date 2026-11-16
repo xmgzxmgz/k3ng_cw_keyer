@@ -912,14 +912,29 @@ void web_print_page_keyer_settings_process(NETWORK_CLIENT_CLS client){
         if ((value_long < STRAIGHT) || (value_long > SINGLE_PADDLE)){
           invalid_data = 1;
         }
+        #ifdef OPTION_NO_ULTIMATIC
+        // Builds with OPTION_NO_ULTIMATIC compile the ULTIMATIC paddle dispatch
+        // out entirely (k3ng_keyer.ino:6413-6531) and drop the radio button from
+        // the form, so accepting 5 here would leave the keyer in a mode that has
+        // no code behind it.
+        if (value_long == ULTIMATIC){
+          invalid_data = 1;
+        }
+        #endif //OPTION_NO_ULTIMATIC
       }
 
       // dit/dah buffer offsets are stored as uint8_t (k3ng_keyer.ino:2208-2209).
       if (parameter == "di"){ if ((value_long < 0) || (value_long > 255)){ invalid_data = 1; } }
       if (parameter == "da"){ if ((value_long < 0) || (value_long > 255)){ invalid_data = 1; } }
 
-      // Wordspace of 0 would make the inter-word timing collapse.
-      if (parameter == "ws"){ if (value_long < 1){ invalid_data = 1; } }
+      // Wordspace is stored as uint8_t (k3ng_keyer.ino:2203), same as di/da
+      // above, so bounding only the lower end lets ws=256 through here and wrap
+      // to 0 by the time it is narrowed into temp_wordspace -- the zero-wordspace
+      // state this check exists to prevent. Bounded at 255 rather than at the
+      // serial path's 100 (serial_change_wordspace, k3ng_keyer.ino:14913) so that
+      // an existing configuration already holding a value above 100 can still be
+      // re-saved through the form.
+      if (parameter == "ws"){ if ((value_long < 1) || (value_long > 255)){ invalid_data = 1; } }
 
       // Sidetone must stay within the configured limits (settings.h), the same
       // check the serial command path applies at k3ng_keyer.ino:15093-15094.
